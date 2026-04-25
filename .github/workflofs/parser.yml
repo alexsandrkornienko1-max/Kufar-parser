@@ -1,5 +1,6 @@
 name: Kufar Parser
 on:
+  push:
   schedule:
     # Запуск каждый час (минута 5) – можно менять
     - cron: '5 * * * *'
