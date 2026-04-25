@@ -1,10 +1,10 @@
 name: Kufar Parser
+
 on:
   push:
   schedule:
-    # Запуск каждый час (минута 5) – можно менять
     - cron: '5 * * * *'
-  workflow_dispatch:  # чтобы можно было запустить вручную из интерфейса GitHub
+  workflow_dispatch:
 
 jobs:
   check:
