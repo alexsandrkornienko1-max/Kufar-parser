@@ -5,8 +5,8 @@ from datetime import datetime
 
 # ========== НАСТРОЙКИ (измените под себя) ==========
 SEARCH_URL = "https://re.kufar.by/l/minsk/kupit/kommercheskaya/magaziny?cmim=v.and%3A2&cur=USD&oph=1&st=r%3A0%2C50"  # ЗАМЕНИТЕ НА ВАШ URL
-TELEGRAM_BOT_TOKEN = "8790278634:AAFI3-OJ1hbYx3JeeMbp3WxZNKJoFiHsnXg"         # Например: "7234567890:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw"
-TELEGRAM_CHAT_ID = "6494782037"         # Например: "123456789"
+TELEGRAM_BOT_TOKEN = os.getenv "8790278634:AAFI3-OJ1hbYx3JeeMbp3WxZNKJoFiHsnXg"         # Например: "7234567890:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw"
+TELEGRAM_CHAT_ID = os.getenv = "6494782037"         # Например: "123456789"
 # ===================================================
 
 # Файл, в котором храним уже обработанные ID объявлений
