@@ -1,5 +1,4 @@
 name: Kufar Parser
-
 on:
   schedule:
     # Запуск каждый час (минута 5) – можно менять
