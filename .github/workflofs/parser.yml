@@ -1,0 +1,21 @@
+name: Kufar Parser
+
+on:
+  schedule:
+    # Запуск каждый час (минута 5) – можно менять
+    - cron: '5 * * * *'
+  workflow_dispatch:  # чтобы можно было запустить вручную из интерфейса GitHub
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: pip install requests
+      - name: Run parser
+        run: python kufar_bot.py
