@@ -1,32 +1,98 @@
-import requests, json, os, re, time
+import requests
+import json
+import os
+import re
 from datetime import datetime
 
-SEARCH_URL = "https://re.kufar.by/l/minsk/kupit/kommercheskaya/magaziny?cmim=v.and%3A2&cur=USD&oph=1&st=r%3A0%2C50"   # вставь свою ссылку
-TELEGRAM_BOT_TOKEN = "8517056028:AAHwxR1kXKaPBJYFqsljbXSQDM1y6yk7Ee0"
-TELEGRAM_CHAT_ID = "5001350756"
+# ========== НАСТРОЙКИ (изменяемые параметры) ==========
+# Вставьте сюда URL, который вы скопировали с Kufar
+SEARCH_URL = "https://re.kufar.by/l/minsk/kupit/kommercheskaya/magaziny?cmim=v.and%3A2&cur=USD&oph=1&st=r%3A0%2C50"
+
+# Токены читаются из переменных окружения (защищённые секреты GitHub Actions)
+TELEGRAM_BOT_TOKEN = os.getenv("8517056028:AAHwxR1kXKaPBJYFqsljbXSQDM1y6yk7Ee0")
+TELEGRAM_CHAT_ID = os.getenv("5001350756")
+
+# Если вы запускаете скрипт не в GitHub Actions (например, на своём ПК) – 
+# раскомментируйте следующие строки и впишите свои токены:
+# TELEGRAM_BOT_TOKEN = "вставьте_свой_токен_сюда"
+# TELEGRAM_CHAT_ID = "вставьте_свой_chat_id_сюда"
+
+# Файл для хранения уже обработанных ID объявлений
 KNOWN_IDS_FILE = "known_ids.json"
+# ===================================================
 
-def get_ids():
+def get_listing_ids_from_kufar():
+    """
+    Запрашивает страницу поиска Kufar и извлекает ID объявлений.
+    """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/537.36"
+    }
     try:
-        resp = requests.get(SEARCH_URL, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
-        ids = re.findall(r'data-ad-id="(\d+)"', resp.text)
+        response = requests.get(SEARCH_URL, headers=headers, timeout=30)
+        response.raise_for_status()
+        html = response.text
+        
+        # Ищем ID в атрибутах data-ad-id
+        ids = re.findall(r'data-ad-id="(\d+)"', html)
+        
+        # Если не нашли, пробуем другой паттерн (JSON внутри страницы)
         if not ids:
-            ids = re.findall(r'"ad_id":(\d+)', resp.text)
+            ids = re.findall(r'"ad_id":(\d+)', html)
+        
         return set(ids)
-    except: return set()
+    except Exception as e:
+        print(f"Ошибка при запросе: {e}")
+        return set()
 
-def send_telegram(text):
+def load_known_ids():
+    if os.path.exists(KNOWN_IDS_FILE):
+        with open(KNOWN_IDS_FILE, "r") as f:
+            return set(json.load(f))
+    return set()
+
+def save_known_ids(ids):
+    with open(KNOWN_IDS_FILE, "w") as f:
+        json.dump(list(ids), f)
+
+def send_telegram_message(text):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("Не заданы TELEGRAM_TOKEN или TELEGRAM_CHAT_ID")
+        return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": text})
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": False
+    }
+    try:
+        requests.post(url, json=payload, timeout=10)
+    except Exception as e:
+        print(f"Ошибка отправки в Telegram: {e}")
 
 def main():
-    print("Проверка...")
-    current = get_ids()
-    known = set(json.load(open(KNOWN_IDS_FILE))) if os.path.exists(KNOWN_IDS_FILE) else set()
-    new = current - known
-    for ad_id in new:
-        send_telegram(f"🔔 Новое помещение!\nhttps://kufar.by/item/{ad_id}")
-    with open(KNOWN_IDS_FILE, "w") as f: json.dump(list(known | current), f)
+    print(f"{datetime.now()} - Проверка новых объявлений...")
+    current_ids = get_listing_ids_from_kufar()
+    if not current_ids:
+        print("Не удалось получить ID. Возможно, изменилась структура страницы.")
+        return
+    
+    known_ids = load_known_ids()
+    new_ids = current_ids - known_ids
+    
+    if new_ids:
+        print(f"Найдено новых объявлений: {len(new_ids)}")
+        for ad_id in new_ids:
+            link = f"https://kufar.by/item/{ad_id}"
+            message = f"🔔 <b>Новое помещение!</b>\n{link}"
+            send_telegram_message(message)
+            print(f"Отправлено: {message}")
+        known_ids.update(new_ids)
+    else:
+        print("Новых объявлений нет.")
+    
+    save_known_ids(known_ids)
 
-if __name__ == "__main__":
+if name == "__main__":
     main()
