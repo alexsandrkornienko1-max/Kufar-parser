@@ -1,14 +1,17 @@
 name: Kufar Parser
+
 on:
   schedule:
-    - cron: '0 3-23 * * *'   # с 3 до 23 UTC = с 6 до 2 ночи по Минску (не покрывает 0-5 утра)
-  workflow_dispatch:
+    - cron: '0 * * * *'   # каждый час в 00 минут
+  workflow_dispatch:       # остаётся ручной запуск
+
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: '3.10' }
+        with:
+          python-version: '3.10'
       - run: pip install requests
       - run: python kufar_bot.py
